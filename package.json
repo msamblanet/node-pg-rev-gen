@@ -1,0 +1,59 @@
+{
+  "name": "@msamblanet/node-pg-rev-gen",
+  "version": "0.1.0",
+  "description": "SQL generator for the node-pg-rev system",
+  "author": "Michael Samblanet <michael@samblanet.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/msamblanet/node-pg-rev-gen.git"
+  },
+  "bugs": {
+    "url": "https://github.com/msamblanet/node-pg-rev-gen/issues"
+  },
+  "homepage": "https://github.com/msamblanet/node-pg-rev-gen#readme",
+  "type": "module",
+  "bin": {
+    "node-pg-rev-gen": "./src/generate.js"
+  },
+
+  "files": [
+    "LICENSE",
+    "src"
+  ],
+
+  "scripts": {
+    "lint": "xo",
+    "lint:fix": "xo --fix",
+    "lib:check": "ncu",
+    "lib:update:patch": "ncu -u -t patch && npm install",
+    "lib:update:minor": "ncu -u -t minor && npm install",
+    "lib:update:latest": "ncu -u -t latest && npm install",
+    "lib:update:doctor": "ncu --doctor -u -t latest",
+    "lib:unused": "npx depcheck"
+  },
+
+  "dependencies": {
+    "handlebars": "^4.7.7",
+    "json5": "^2.2.1"
+  },
+  "devDependencies": {
+    "npm-check-updates": "^15.3.4",
+    "xo": "^0.51.0",
+    "depcheck": "^1.4.3"
+  },
+  "engines": {
+    "node": ">=18.3.0"
+  },
+  "xo": {
+    "space": 2,
+    "rules": {
+      "comma-dangle": "off",
+      "object-curly-spacing": [
+        "error",
+        "always"
+      ],
+      "capitalized-comments": "off"
+    }
+  }
+}

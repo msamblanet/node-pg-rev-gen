@@ -1,0 +1,11 @@
+{
+  "files.exclude": {
+    ".github": true,
+    ".vscode": true,
+    ".editorconfig": true,
+    "tsconfig.json": true,
+    "node_modules": true,
+    ".npmrc": true,
+    "LICENSE": true
+  }
+}

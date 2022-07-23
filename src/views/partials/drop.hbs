@@ -1,0 +1,42 @@
+{{#each (reverseArray types)}}
+--
+-- Drop {{name}} elements
+--
+{{#if ../includeTransient}}{{#if extraDropTransient}}{{#each extraDropTransient}}
+{{this}}
+{{/each}}{{/if}}{{/if}}
+
+{{#if ../includePersistent}}{{#if extraDropPersistent}}{{#each extraDropPersistent}}
+{{this}}
+{{/each}}{{/if}}{{/if}}
+
+{{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_current_refresh;{{/if}}
+{{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current_with_rev;{{/if}}
+{{#if ../includeTransient}}DROP {{#if materializeView}}MATERIALIZED {{/if}}VIEW IF EXISTS {{namespace}}{{name}}_current;{{/if}}
+{{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current_view;{{/if}}
+
+{{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_rev_trim;{{/if}}
+{{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_rev_load;{{/if}}
+{{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_rev_current;{{/if}}
+{{#if ../includePersistent}}DROP TABLE IF EXISTS {{namespace}}{{name}}_rev;{{/if}}
+
+{{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_raw_trim;{{/if}}
+{{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{name}}_raw_load;{{/if}}
+{{#if ../includePersistent}}DROP TABLE IF EXISTS {{namespace}}{{name}}_raw;{{/if}}
+
+{{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_updated_load;{{/if}}
+{{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_updated_trim;{{/if}}
+{{#if ../includePersistent}}DROP TABLE IF EXISTS {{namespace}}{{name}}_updated;{{/if}}
+{{#each extraUpdated}}
+{{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{../namespace}}{{this}}_updated_load;{{/if}}
+{{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{../namespace}}{{this}}_updated_trim;{{/if}}
+{{#if ../includePersistent}}DROP TABLE IF EXISTS {{../namespace}}{{this}}_updated;{{/if}}
+{{/each}}
+
+{{#if defaultSourceId}}DROP FUNCTION IF EXISTS {{namespace}}{{name}}_default_source_id;{{/if}}
+
+{{/each}}
+--
+-- Drop common elements
+--
+{{#if includeTransient}}DROP FUNCTION IF EXISTS {{publicNamespace}}rev_jsonb_diff_val;{{/if}}

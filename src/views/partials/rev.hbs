@@ -1,0 +1,159 @@
+--
+-- The _rev table stores the revision history for the raw data
+--
+-- NOTE: ONLY GRANT SELECT PERMISSIONS ON THIS TABLE - ALL UPDATES SHOULD BE DONE VIA THE STORED PROCEDURES
+--
+CREATE TABLE IF NOT EXISTS {{namespace}}{{name}}_rev (
+  rev_id SERIAL PRIMARY KEY, -- Unique identifier for the revision
+  ext_uid TEXT NOT NULL, -- External system's unique identifier
+  {{#if storeSource}}source_id TEXT NOT NULL, -- Source system identifier{{/if}}
+  {{#if extIdType}}ext_id {{extIdType}} NOT NULL, -- Identifier in source system{{/if}}
+
+  prev_rev_id INTEGER REFERENCES {{name}}_rev(rev_id) ON DELETE SET NULL, -- FK to previous revision in chain
+  next_rev_id INTEGER REFERENCES {{name}}_rev(rev_id) ON DELETE RESTRICT, -- FK to next revision in chain
+  current BOOLEAN NOT NULL GENERATED ALWAYS AS (next_rev_id IS NULL) STORED, -- Indexable field for the head of the chain
+
+  data_rev INTEGER NOT NULL, -- Revision of the data loader
+  raw_data JSONB, -- Full raw data (may be null'ed for old non-head data over time)
+  raw_delta JSONB, -- Changes from prev revision to current revision (to allow forward chaining)
+  raw_revert JSONB, -- Changes from current revision to previous (to allow backwards chaining)
+
+  deleted BOOLEAN NOT NULL, -- Set to true if the record has been deleted
+
+  fetch_date TIMESTAMPTZ NOT NULL, -- Date this revision of the record was fetched
+  ext_update_date TIMESTAMPTZ, -- External system update data when this record was fetched
+
+  update_date TIMESTAMPTZ NOT NULL, -- Update date from raw when this record was fetched
+
+  -- Internal postgres auditing fields
+  _created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  _updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for FK / Join Keys
+CREATE INDEX IF NOT EXISTS {{name}}_rev_ext_uid_idx ON {{namespace}}{{name}}_rev (ext_uid);
+{{#if extIdType}}CREATE INDEX IF NOT EXISTS {{name}}_rev_ext_id_idx ON {{namespace}}{{name}}_rev ({{#if storeSource}}source_id, {{/if}}ext_id);{{/if}}
+CREATE INDEX IF NOT EXISTS {{name}}_rev_prev_rev_id_idx ON {{namespace}}{{name}}_rev (prev_rev_id);
+CREATE INDEX IF NOT EXISTS {{name}}_rev_next_rev_id_idx ON {{namespace}}{{name}}_rev (next_rev_id);
+-- Index for fetching current records (very common)
+CREATE INDEX IF NOT EXISTS {{name}}_rev_current_deleted_idx ON {{namespace}}{{name}}_rev (current, deleted);
+CREATE INDEX IF NOT EXISTS {{name}}_rev_ext_uid_current_idx ON {{namespace}}{{name}}_rev (ext_uid) WHERE current;
+
+--
+-- View of current, not deleted revisions
+--
+CREATE OR REPLACE VIEW {{namespace}}{{name}}_rev_current AS
+SELECT *
+  FROM {{namespace}}{{name}}_rev
+ WHERE current AND NOT deleted;
+
+--
+-- This procedure looks for updated _raw records and loads them into _rev
+--
+-- THE APPLICATION IS RESPONSIBLE TO ENSURE THAT ONLY ONE EXECUTION OF THIS FUNCTION OCCURS AT A TIME!
+--
+-- _del_timestamp - Optional parameter specifying the timestamp to mark records as deleted if they are now missing from raw
+--                  If set to NULL, delete detection is not done
+--
+-- _refresh_current_view - Optional parameter to specify if you want the current views refreshed
+--                         If incrementally loading, you may wish to set this to false to only periodically refresh the views
+--
+CREATE OR REPLACE PROCEDURE {{namespace}}{{name}}_rev_load(
+      _del_timestamp TIMESTAMPTZ,
+      _refresh_current_view BOOLEAN,
+      counts INOUT JSONB
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  temp INTEGER;
+BEGIN
+  --
+  -- Load modified revisions from raw into rev
+  --
+  INSERT INTO {{namespace}}{{name}}_rev
+         (ext_uid, {{#if storeSource}}source_id, {{/if}}{{#if extIdType}}ext_id, {{/if}}
+          data_rev, raw_data, deleted,
+          fetch_date, ext_update_date, update_date,
+          prev_rev_id, raw_delta, raw_revert)
+  SELECT  a.ext_uid, {{#if storeSource}}a.source_id, {{/if}}{{#if extIdType}}a.ext_id, {{/if}}
+          a.data_rev, a.raw_data, a.deleted,
+          a.last_fetch_date, a.ext_update_date, a.update_date,
+          b.rev_id,
+          CASE WHEN b.raw_data IS NULL THEN a.raw_data ELSE {{../publicNamespace}}rev_jsonb_diff_val(a.raw_data, b.raw_data) END,
+          CASE WHEN b.raw_data IS NULL THEN NULL ELSE {{../publicNamespace}}rev_jsonb_diff_val(b.raw_data, a.raw_data) END
+    FROM {{namespace}}{{name}}_raw a
+    LEFT JOIN {{namespace}}{{name}}_rev b ON a.ext_uid = b.ext_uid AND b.current
+   WHERE b.rev_id IS NULL
+      OR a.update_date <> b.update_date; -- @TODO This allows remote systems to roll back but we could consider just a > b and just get updates
+
+  GET DIAGNOSTICS temp := ROW_COUNT;
+  counts := counts || jsonb_build_object('load_count', temp);
+
+  --
+  -- Mark missing raw records as deleted
+  --
+  IF (_del_timestamp IS NOT NULL) THEN
+    INSERT INTO {{namespace}}{{name}}_rev
+           (ext_uid, {{#if storeSource}}source_id, {{/if}}{{#if extIdType}}ext_id, {{/if}}
+            data_rev, raw_data, deleted,
+            fetch_date, ext_update_date, update_date,
+            prev_rev_id, raw_delta, raw_revert)
+    SELECT a.ext_uid, {{#if storeSource}}a.source_id, {{/if}}{{#if extIdType}}a.ext_id, {{/if}}
+           a.data_rev, a.raw_data || '{"__raw_deleted": true}'::JSONB, true,
+           _del_timestamp, a.ext_update_date, _del_timestamp,
+           a.rev_id,
+           '{"__raw_deleted": true}'::JSONB,
+           '{"__raw_deleted": null}'::JSONB
+      FROM {{namespace}}{{name}}_rev a
+      LEFT JOIN {{namespace}}{{name}}_raw b ON a.ext_uid = b.ext_uid
+     WHERE a.current AND NOT a.deleted
+       AND b.ext_uid IS NULL;
+
+    GET DIAGNOSTICS temp := ROW_COUNT;
+    counts := counts || jsonb_build_object('missing_deletes_count', temp);
+  ELSE
+    counts := counts || jsonb_build_object('missing_deletes_count', 0);
+  END IF;
+
+  --
+  -- Back link all the old records
+  --
+  UPDATE {{namespace}}{{name}}_rev a
+    SET next_rev_id = b.rev_id,
+        _updated_at = CURRENT_TIMESTAMP
+    FROM {{namespace}}{{name}}_rev b
+  WHERE a.next_rev_id IS NULL
+    AND b.prev_rev_id = a.rev_id;
+
+  GET DIAGNOSTICS temp := ROW_COUNT;
+  counts := counts || jsonb_build_object('backlink_count', temp);
+
+  IF (_refresh_current_view) THEN
+    CALL {{namespace}}{{name}}_current_refresh(counts);
+  END IF;
+END;
+$$;
+
+--
+-- This function NULLs out the raw data from old revisions to save storage
+-- (note: the delta/revert history is kept)
+--
+CREATE OR REPLACE PROCEDURE {{namespace}}{{name}}_rev_trim(_cutoff_date TIMESTAMPTZ, counts INOUT JSONB )
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  temp INTEGER;
+BEGIN
+  UPDATE {{namespace}}{{name}}_rev
+     SET raw_data = NULL,
+         _updated_at = CURRENT_TIMESTAMP
+   WHERE _updated_at < _cutoff_date -- Record was last updated before cutoff (most likely date it was superseded)
+     AND NOT current;               -- Don't clobber tail
+
+  GET DIAGNOSTICS temp := ROW_COUNT;
+  counts := counts || jsonb_build_object('rev_trim_count', temp);
+END;
+$$;

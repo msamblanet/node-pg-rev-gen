@@ -1,0 +1,4 @@
+out
+test*
+!test-data.json
+node_modules

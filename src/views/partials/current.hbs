@@ -1,0 +1,80 @@
+--
+-- View of the current data in the system (extranious fields stripped out - join to _rev or _raw if needed)
+--
+CREATE OR REPLACE VIEW {{namespace}}{{name}}_current_view AS
+SELECT rev_id,
+       ext_uid,
+       {{#if storeSource}}source_id,{{/if}}
+       {{#if extIdType}}ext_id,{{/if}}
+       -- Begin custom fields
+{{~#each extractedFields}}{{#if this.definition}}
+      {{this.definition}} AS {{@key}}, {{#if this.comment}}-- {{this.comment}}{{/if}}
+{{/if}}{{/each}}
+       -- End custom fields
+       update_date
+  FROM {{namespace}}{{name}}_rev_current;
+
+{{#if materializeView}}
+--
+-- Materialized view of current_view to allow for indexing
+--
+CREATE MATERIALIZED VIEW IF NOT EXISTS {{namespace}}{{name}}_current AS
+SELECT * FROM {{namespace}}{{name}}_current_view;
+
+-- rev_id and ext_uid should be unique so give them unique indexes
+CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_rev_id_idx ON {{namespace}}{{name}}_current (rev_id);
+CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_ext_uid_idx ON {{namespace}}{{name}}_current (ext_uid);
+{{#if extIdType}}
+{{#if storeSource}}
+CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_source_id_ext_id_idx ON {{namespace}}{{name}}_current (source_id, ext_id);
+{{else}}
+CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_ext_id_idx ON {{namespace}}{{name}}_current (ext_id);
+{{/if}}
+{{/if}}
+
+-- Update date commonly queried for chained updates
+CREATE INDEX IF NOT EXISTS {{name}}_current_update_date_idx ON {{namespace}}{{name}}_current (update_date);
+
+-- Custom field indexes
+{{~#each extractedFields}}{{#if this.index}}
+CREATE {{#if this.unique}}UNIQUE {{/if}}INDEX IF NOT EXISTS {{../name}}_current_{{@key}}_idx ON {{../namespace}}{{../name}}_current ({{@key}});
+{{/if}}{{/each}}
+{{~#each indexes}}
+CREATE {{#if this.unique}}UNIQUE {{/if}}INDEX IF NOT EXISTS {{../name}}_current_{{@key}}_idx ON {{../namespace}}{{../name}}_current {{this.definition}};{{#if this.comment}} -- {{this.comment}}{{/if}}
+{{/each}}
+
+{{else}}
+--
+-- Compatability view of current_view for consistency
+--
+CREATE OR REPLACE VIEW {{namespace}}{{name}}_current AS
+SELECT * FROM {{namespace}}{{name}}_current_view;
+{{/if}}
+
+--
+-- View of current data with the revision data (including raw data) added in
+--
+CREATE OR REPLACE VIEW {{namespace}}{{name}}_current_with_rev AS
+SELECT a.*,
+       b.data_rev, b.raw_data, b.raw_delta, b.raw_revert, b.fetch_date, b.ext_update_date
+  FROM {{namespace}}{{name}}_current a
+  JOIN {{namespace}}{{name}}_rev b ON a.rev_id = b.rev_id;
+
+--
+-- Refresh the materialized view
+--
+CREATE OR REPLACE PROCEDURE {{namespace}}{{name}}_current_refresh(counts INOUT JSONB )
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  temp INTEGER;
+BEGIN
+{{#if materializView}}
+  REFRESH MATERIALIZED VIEW {{#if concurrentView}}CONCURRENTLY {{/if}}{{namespace}}{{name}}_current;
+{{/if}}
+{{#if extraRefresh}}{{#each extraRefresh}}
+  {{this}}
+{{/each}}{{/if}}
+END;
+$$;

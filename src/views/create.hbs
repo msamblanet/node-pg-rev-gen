@@ -1,0 +1,52 @@
+--
+-- This is a generated script to create all of the tables/views/procedures
+-- for the generated delta history tables
+--
+-- Generated: {{now}}
+--
+
+-- ************************************
+-- Common static objects
+-- ************************************
+{{> static-create }}
+
+
+{{#each types}}
+-- ************************************
+-- {{name}} objects
+--
+-- Templates for some test queries:
+--   CALL {{namespace}}{{name}}_raw_load(1, '[{"ext_id": "A", {{#unless defaultSourceId}}"source_id": "fb", {{/unless}}"fetch_date": "2022-07-08 16:48:41-04", "raw_data": {"a":2}}]'::JSONB, '{}'::JSONB);
+--   SELECT * FROM {{namespace}}{{name}}_raw;
+--   CALL {{namespace}}{{name}}_rev_load(CURRENT_TIMESTAMP, true, '{}'::JSONB);
+--   SELECT * FROM {{namespace}}{{name}}_rev;
+--   SELECT * FROM {{namespace}}{{name}}_current;
+--
+-- ************************************
+
+{{> updated }}
+{{#each extraUpdated}}
+{{> updated name=this namespace=../namespace}}
+{{/each}}
+
+{{> raw }}
+
+{{> rev }}
+
+{{> current }}
+
+{{#if extraCreate}}{{#each extraCreate}}
+{{this}}
+{{/each}}{{/if}}
+
+{{/each}}
+
+--
+-- Access Permissions
+-- 
+{{#each types}}
+{{> grants }}
+
+{{> grants viewers=../viewers updaters=../updaters}}
+
+{{/each}}

@@ -1,0 +1,59 @@
+// Note: This file is parsed using JSON5, so comments and other quality of life
+// syntaxes are allowed - see: https://json5.org/
+{
+  "createFileName": "test-create.sql",
+  "dropFileName": "test-drop.sql",
+  "dropTransientFileName": "test-drop-transient.sql",
+  "publicNamespace": "public.",
+  "types": [
+    {
+      "name": "xyzzy", // Name prefix of all the DB tables/procedures/etc
+      "storeSource": true, // If true, the source id is stored in the raw/rev/current tables/views
+      "extIdType": "text", // If true, the ext_id is stored in the raw/rev/current tables/views
+      "defaultSourceId": "x", // If set, a function is created to return this ID and it is used as a default for source_id on load
+      "namespace": "public.", // If set, will be prepended to all DB object names for this type
+      "materializeView": true, // If set to true, then _current will be a materialized view
+      "concurrentView": true, // If set to true, then refreshing of materialized views will be concurrent
+      "viewers": "", // Grant select rights to CSV of users/roles
+      "updaters": "", // Grant select and execute rights to CSV of users/roles
+      "extractedFields": { // Fields to extract into the _current MView
+        "firstName": { // Name of the field in the _current MView
+          "definition": "raw_data ->> 'first_name'", // Value expression
+          "index": true, // If set to true, a simple index will be created on this one field in the _current MView
+          "unique": false, // If set to true AND index is true, a unique index will be created in the _current _MView
+          "comment": "Test Comment" // Optional comment to put in the SQL
+        }
+      },
+      "indexes": { // Additional complex indexes to add to the _current MView
+        "TestIndex1": { // Name of the index
+          "definition": "(firstName, update_date)", // Definition of the index
+          "unique": true, // If set to true the index will be unique
+          "comment": "Test Comment2" // Optional comment to put in the SQL
+        }
+      },
+      "extraCreate": [
+        "-- Extra SQL commands to run after creating our tables",
+      ],
+      "extraRawTrim": [
+        "-- Extra SQL commands to run after pruning",
+      ],
+      "extraGrant": [
+        "-- Extra SQL commands to run on grant",
+      ],
+      "extraDropPersistent": [
+        "-- Extra SQL commands to run before dropping persistent tables",
+      ],
+      "extraDropTransient": [
+        "-- Extra SQL commands to run before dropping transient tables",
+      ],
+      "extraRefresh": [
+        "-- Extra SQL commands to run on materialize operations",
+        "-- Allows dependent mviews to be materialized automatically"
+      ]
+    }, {
+      "name": "foobar" // Name prefix of all the DB tables/procedures/etc
+    }
+  ],
+  "viewers": "contact_viewer_role", // Optional, Can specify multiple with comma separation
+  "updaters": "contact_ingest_role" // Optional, Can specify multiple with comma separation
+}

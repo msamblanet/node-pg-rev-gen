@@ -1,0 +1,49 @@
+--
+-- Function to take the diff between 2 JSONB fields
+-- Inspired by: https://stackoverflow.com/a/37278190/17398295
+--
+CREATE OR REPLACE FUNCTION {{publicNamespace}}rev_jsonb_diff_val(newObj JSONB, srcObj JSONB)
+RETURNS JSONB
+LANGUAGE plpgsql
+IMMUTABLE
+SECURITY DEFINER
+AS $$
+DECLARE
+  rv JSONB;
+  newVal JSONB;
+  oldVal JSONB;
+  objDiff JSONB;
+  v RECORD;
+BEGIN
+  IF srcObj IS NULL OR jsonb_typeof(srcObj) = 'null'
+  THEN
+    RETURN newVal;
+  END IF;
+
+  rv = newObj;
+  FOR v IN SELECT * FROM jsonb_each(srcObj) LOOP
+    oldVal = v.value;
+    newVal = rv->v.key;
+    IF newVal = oldVal THEN
+      -- Field is contained so remove from result
+      rv = rv - v.key;
+    ELSIF newVal IS NOT NULL THEN
+      -- Field found in result
+      IF jsonb_typeof(newVal) = 'object' AND jsonb_typeof(oldVal) = 'object' THEN
+        -- Field is an object
+        objDiff = {{publicNamespace}}rev_jsonb_diff_val(newVal, oldVal);
+        IF objDiff = '{}'::JSONB THEN
+          rv = rv - v.key;
+        ELSE
+          rv = rv || jsonb_build_object(v.key, objDiff);
+        END IF;
+      -- ELSE Field is changed and not always an object so let it be
+      END IF;
+    ELSE
+      -- Field does not exist in rv, add a null
+      rv = rv || jsonb_build_object(v.key, null);
+    END IF;
+  END LOOP;
+  RETURN rv;
+END;
+$$;
