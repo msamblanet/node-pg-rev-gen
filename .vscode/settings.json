@@ -2,10 +2,8 @@
   "files.exclude": {
     ".github": true,
     ".vscode": true,
-    ".editorconfig": true,
-    "tsconfig.json": true,
     "node_modules": true,
-    ".npmrc": true,
-    "LICENSE": true
+    ".editorconfig": true,
+    "package-lock.json": true
   }
 }
