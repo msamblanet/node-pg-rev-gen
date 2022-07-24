@@ -10,6 +10,9 @@ import JSON5 from 'json5';
 // Need to obtain __dirname - see https://bobbyhadz.com/blog/javascript-dirname-is-not-defined-in-es-module-scope
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const __packageFile = path.resolve(__dirname, '..', 'package.json');
+
+const __packageJson = JSON.parse(await fs.readFile(__packageFile), { encoding: 'utf8' });
 
 const cachedTemplates = {};
 
@@ -46,6 +49,7 @@ async function initHandlebars() {
   }
 
   Handlebars.registerHelper('reverseArray', array => [...array].reverse());
+  Handlebars.registerHelper('packageVersion', () => __packageJson.version ?? 'unknown');
 }
 
 async function generate(data) {
