@@ -73,8 +73,8 @@ BEGIN
 {{#if materializView}}
   REFRESH MATERIALIZED VIEW {{#if concurrentView}}CONCURRENTLY {{/if}}{{namespace}}{{name}}_current;
 {{/if}}
-{{#if extraRefresh}}{{#each extraRefresh}}
+{{#each extraRefresh}}
   {{this}}
-{{/each}}{{/if}}
+{{/each}}
 END;
 $$;

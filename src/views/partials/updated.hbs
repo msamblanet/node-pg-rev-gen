@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS {{namespace}}{{name}}_updated (
   update_date TIMESTAMPTZ NOT NULL,
   raw_data TEXT,
   notes TEXT,
-  
-  -- Internal postgres auditing fields  
+
+  -- Internal postgres auditing fields
   _created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   _updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS {{name}}_updated_update_date_idx ON {{namespace}}{{na
 
 --
 -- Procedure to bulk load updates
--- 
+--
 CREATE OR REPLACE PROCEDURE {{namespace}}{{name}}_updated_load(_data JSONB, counts INOUT JSONB )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -28,15 +28,15 @@ DECLARE
   temp INTEGER;
 BEGIN
   WITH rawRecords AS (
-    SELECT COALESCE(ext_uid, {{#if defaultSourceId}}COALESCE(source_id, {{namespace}}{{name}}_default_source_id()){{else}}source_id{{/if}} || ':' || ext_id) AS ext_uid,
-           raw_data, 
-           {{#if defaultSourceId}}COALESCE(source_id, {{namespace}}{{name}}_default_source_id()){{else}}source_id{{/if}} AS source_id, 
+    SELECT COALESCE(ext_uid, {{#if defaultSourceId}}COALESCE(source_id, {{namespace}}{{name}}_default_source_id()){{else}}source_id{{/if}} || ':' || ext_id::TEXT) AS ext_uid,
+           raw_data,
+           {{#if defaultSourceId}}COALESCE(source_id, {{namespace}}{{name}}_default_source_id()){{else}}source_id{{/if}} AS source_id,
            ext_id, update_date, notes
-      FROM jsonb_to_recordset(_data) AS (ext_uid TEXT, ext_id TEXT, source_id TEXT, raw_data JSONB, update_date TIMESTAMPTZ, notes TEXT)
+      FROM jsonb_to_recordset(_data) AS (ext_uid TEXT, ext_id {{#if extIdType}}{{extIdType}}{{else}}TEXT{{/if}}, source_id TEXT, raw_data JSONB, update_date TIMESTAMPTZ, notes TEXT)
      ORDER BY ext_uid, update_date DESC
   ),
   distinctRecords AS (
-    SELECT DISTINCT ON (ext_uid) ext_uid, raw_data, 
+    SELECT DISTINCT ON (ext_uid) ext_uid, raw_data,
               {{#if storeSource}}source_id,{{/if}}
               {{#if extIdType}}ext_id,{{/if}}
               update_date, notes
@@ -44,11 +44,11 @@ BEGIN
      ORDER BY ext_uid, update_date DESC
   )
   INSERT INTO {{namespace}}{{name}}_updated (
-              ext_uid, raw_data, 
+              ext_uid, raw_data,
               {{#if storeSource}}source_id,{{/if}}
               {{#if extIdType}}ext_id,{{/if}}
-              update_date, notes) 
-       SELECT ext_uid, raw_data, 
+              update_date, notes)
+       SELECT ext_uid, raw_data,
               {{#if storeSource}}source_id,{{/if}}
               {{#if extIdType}}ext_id,{{/if}}
               update_date, notes

@@ -2,13 +2,13 @@
 --
 -- Drop {{name}} elements
 --
-{{#if ../includeTransient}}{{#if extraDropTransient}}{{#each extraDropTransient}}
+{{#if ../includeTransient}}{{#each extraDropTransient}}
 {{this}}
-{{/each}}{{/if}}{{/if}}
+{{/each}}{{/if}}
 
-{{#if ../includePersistent}}{{#if extraDropPersistent}}{{#each extraDropPersistent}}
+{{#if ../includePersistent}}{{#each extraDropPersistent}}
 {{this}}
-{{/each}}{{/if}}{{/if}}
+{{/each}}{{/if}}
 
 {{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_current_refresh;{{/if}}
 {{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current_with_rev;{{/if}}
@@ -28,9 +28,9 @@
 {{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_updated_trim;{{/if}}
 {{#if ../includePersistent}}DROP TABLE IF EXISTS {{namespace}}{{name}}_updated;{{/if}}
 {{#each extraUpdated}}
-{{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{../namespace}}{{this}}_updated_load;{{/if}}
-{{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{../namespace}}{{this}}_updated_trim;{{/if}}
-{{#if ../includePersistent}}DROP TABLE IF EXISTS {{../namespace}}{{this}}_updated;{{/if}}
+{{#if ../../includeTransient}}DROP PROCEDURE IF EXISTS {{../namespace}}{{this}}_updated_load;{{/if}}
+{{#if ../../includeTransient}}DROP PROCEDURE IF EXISTS {{../namespace}}{{this}}_updated_trim;{{/if}}
+{{#if ../../includePersistent}}DROP TABLE IF EXISTS {{../namespace}}{{this}}_updated;{{/if}}
 {{/each}}
 
 {{#if defaultSourceId}}DROP FUNCTION IF EXISTS {{namespace}}{{name}}_default_source_id;{{/if}}
