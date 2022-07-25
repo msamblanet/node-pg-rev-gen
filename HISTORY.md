@@ -1,6 +1,6 @@
 # node-pg-rev-gen - Revision History
 
-- 2022-07-24: v0.1.1 - Initial release
+- 2022-07-24: v0.1.1
   - Add package version to SQL header
   - Correct dropping of extra updated tables
   - Add missing ::text typecast for ext_uid in xxx_updated_load
