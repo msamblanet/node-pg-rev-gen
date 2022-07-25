@@ -32,7 +32,7 @@ BEGIN
            raw_data,
            {{#if defaultSourceId}}COALESCE(source_id, {{namespace}}{{name}}_default_source_id()){{else}}source_id{{/if}} AS source_id,
            ext_id, update_date, notes
-      FROM jsonb_to_recordset(_data) AS (ext_uid TEXT, ext_id TEXT, source_id TEXT, raw_data JSONB, update_date TIMESTAMPTZ, notes TEXT)
+      FROM jsonb_to_recordset(_data) AS (ext_uid TEXT, ext_id {{#if extIdType}}{{extIdType}}{{else}}TEXT{{/if}}, source_id TEXT, raw_data JSONB, update_date TIMESTAMPTZ, notes TEXT)
      ORDER BY ext_uid, update_date DESC
   ),
   distinctRecords AS (

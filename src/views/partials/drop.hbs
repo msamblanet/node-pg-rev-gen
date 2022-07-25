@@ -2,13 +2,13 @@
 --
 -- Drop {{name}} elements
 --
-{{#if ../includeTransient}}{{#if extraDropTransient}}{{#each extraDropTransient}}
+{{#if ../includeTransient}}{{#each extraDropTransient}}
 {{this}}
-{{/each}}{{/if}}{{/if}}
+{{/each}}{{/if}}
 
-{{#if ../includePersistent}}{{#if extraDropPersistent}}{{#each extraDropPersistent}}
+{{#if ../includePersistent}}{{#each extraDropPersistent}}
 {{this}}
-{{/each}}{{/if}}{{/if}}
+{{/each}}{{/if}}
 
 {{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_current_refresh;{{/if}}
 {{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current_with_rev;{{/if}}
