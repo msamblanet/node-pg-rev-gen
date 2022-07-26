@@ -1,6 +1,6 @@
 {{#if viewers}}
 -- Grant {{viewers}} read access to {{name}}'s objects
-{{#if defaultSourceId}}GRANT EXECUTE ON FUNCTION {{namespace}}{{name}}_default_source_id TO {{viewers}};{{/if}}
+GRANT EXECUTE ON FUNCTION {{namespace}}{{name}}_default_source_id TO {{viewers}};
 GRANT SELECT ON {{namespace}}{{name}}_raw TO {{viewers}};
 GRANT SELECT ON {{namespace}}{{name}}_rev TO {{viewers}};
 GRANT SELECT ON {{namespace}}{{name}}_rev_current TO {{viewers}};
@@ -9,6 +9,7 @@ GRANT SELECT ON {{namespace}}{{name}}_current TO {{viewers}};
 GRANT SELECT ON {{namespace}}{{name}}_current_with_rev TO {{viewers}};
 GRANT SELECT ON {{namespace}}{{name}}_updated TO {{viewers}};
 {{#each extraUpdated}}
+GRANT EXECUTE ON FUNCTION {{../namespace}}{{this}}_default_source_id TO {{../viewers}};
 GRANT SELECT ON {{../namespace}}{{this}}_updated TO {{../viewers}};
 {{/each}}
 
@@ -16,7 +17,7 @@ GRANT SELECT ON {{../namespace}}{{this}}_updated TO {{../viewers}};
 
 {{#if updaters}}
 -- Grant {{updaters}} read and execute access to {{name}}'s objects
-{{#if defaultSourceId}}GRANT EXECUTE ON FUNCTION {{namespace}}{{name}}_default_source_id TO {{updaters}};{{/if}}
+GRANT EXECUTE ON FUNCTION {{namespace}}{{name}}_default_source_id TO {{updaters}};
 GRANT SELECT ON {{namespace}}{{name}}_raw TO {{updaters}};
 GRANT SELECT ON {{namespace}}{{name}}_rev TO {{updaters}};
 GRANT SELECT ON {{namespace}}{{name}}_rev_current TO {{updaters}};
@@ -36,6 +37,7 @@ GRANT EXECUTE ON PROCEDURE {{namespace}}{{name}}_current_refresh TO {{updaters}}
 GRANT EXECUTE ON PROCEDURE {{namespace}}{{name}}_updated_load TO {{updaters}};
 GRANT EXECUTE ON PROCEDURE {{namespace}}{{name}}_updated_trim TO {{updaters}};
 {{#each extraUpdated}}
+GRANT EXECUTE ON FUNCTION {{../namespace}}{{this}}_default_source_id TO {{../updaters}};
 GRANT EXECUTE ON PROCEDURE {{../namespace}}{{this}}_updated_load TO {{../updaters}};
 GRANT EXECUTE ON PROCEDURE {{../namespace}}{{this}}_updated_trim TO {{../updaters}};
 {{/each}}

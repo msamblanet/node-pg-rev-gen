@@ -17,7 +17,7 @@
 -- {{name}} objects
 --
 -- Templates for some test queries:
---   CALL {{namespace}}{{name}}_raw_load(1, '[{"ext_id": "A", {{#unless defaultSourceId}}"source_id": "fb", {{/unless}}"fetch_date": "2022-07-08 16:48:41-04", "raw_data": {"a":2}}]'::JSONB, '{}'::JSONB);
+--   CALL {{namespace}}{{name}}_raw_load(1, '[{"ext_id": "A", "fetch_date": "2022-07-08 16:48:41-04", "raw_data": {"a":2}}]'::JSONB, '{}'::JSONB);
 --   SELECT * FROM {{namespace}}{{name}}_raw;
 --   CALL {{namespace}}{{name}}_rev_load(CURRENT_TIMESTAMP, true, '{}'::JSONB);
 --   SELECT * FROM {{namespace}}{{name}}_rev;
@@ -25,8 +25,11 @@
 --
 -- ************************************
 
+{{> defaultSourceId}}
+
 {{> updated }}
 {{#each extraUpdated}}
+{{> defaultSourceId name=this namespace=../namespace}}
 {{> updated name=this namespace=../namespace}}
 {{/each}}
 
