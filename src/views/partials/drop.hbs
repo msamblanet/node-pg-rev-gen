@@ -28,12 +28,13 @@
 {{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_updated_trim;{{/if}}
 {{#if ../includePersistent}}DROP TABLE IF EXISTS {{namespace}}{{name}}_updated;{{/if}}
 {{#each extraUpdated}}
+{{#if ../../includeTransient}}DROP FUNCTION IF EXISTS {{../namespace}}{{this}}_default_source_id;{{/if}}
 {{#if ../../includeTransient}}DROP PROCEDURE IF EXISTS {{../namespace}}{{this}}_updated_load;{{/if}}
 {{#if ../../includeTransient}}DROP PROCEDURE IF EXISTS {{../namespace}}{{this}}_updated_trim;{{/if}}
 {{#if ../../includePersistent}}DROP TABLE IF EXISTS {{../namespace}}{{this}}_updated;{{/if}}
 {{/each}}
 
-{{#if defaultSourceId}}DROP FUNCTION IF EXISTS {{namespace}}{{name}}_default_source_id;{{/if}}
+{{#if ../includeTransient}}DROP FUNCTION IF EXISTS {{namespace}}{{name}}_default_source_id;{{/if}}
 
 {{/each}}
 --

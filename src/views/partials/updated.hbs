@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS {{namespace}}{{name}}_updated (
   {{#if storeSource}}source_id TEXT NOT NULL, -- Source system identifier{{/if}}
   {{#if extIdType}}ext_id {{extIdType}} NOT NULL, -- External system's unique identifier{{/if}}
   update_date TIMESTAMPTZ NOT NULL,
-  raw_data TEXT,
+  raw_data JSONB,
   notes TEXT,
 
   -- Internal postgres auditing fields
@@ -28,9 +28,9 @@ DECLARE
   temp INTEGER;
 BEGIN
   WITH rawRecords AS (
-    SELECT COALESCE(ext_uid, {{#if defaultSourceId}}COALESCE(source_id, {{namespace}}{{name}}_default_source_id()){{else}}source_id{{/if}} || ':' || ext_id::TEXT) AS ext_uid,
+    SELECT COALESCE(ext_uid, COALESCE(source_id, {{namespace}}{{name}}_default_source_id()) || ':' || ext_id::TEXT) AS ext_uid,
            raw_data,
-           {{#if defaultSourceId}}COALESCE(source_id, {{namespace}}{{name}}_default_source_id()){{else}}source_id{{/if}} AS source_id,
+           COALESCE(source_id, {{namespace}}{{name}}_default_source_id()) AS source_id,
            ext_id, update_date, notes
       FROM jsonb_to_recordset(_data) AS (ext_uid TEXT, ext_id {{#if extIdType}}{{extIdType}}{{else}}TEXT{{/if}}, source_id TEXT, raw_data JSONB, update_date TIMESTAMPTZ, notes TEXT)
      ORDER BY ext_uid, update_date DESC

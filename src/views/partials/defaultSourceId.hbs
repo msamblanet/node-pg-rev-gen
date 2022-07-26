@@ -1,0 +1,14 @@
+--
+-- Minimal procedure to lookup the system ID for this type
+-- Intended to help external apps so they do not need to hard-code this knowledge
+--
+CREATE OR REPLACE FUNCTION {{namespace}}{{name}}_default_source_id()
+RETURNS TEXT
+LANGUAGE plpgsql
+IMMUTABLE
+SECURITY DEFINER
+AS $$
+BEGIN
+  return '{{#if defaultSourceId}}{{defaultSourceId}}{{else}}{{name}}{{/if}}';
+END;
+$$;
