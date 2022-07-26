@@ -26,9 +26,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_rev_id_idx ON {{namespace}}{{
 CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_ext_uid_idx ON {{namespace}}{{name}}_current (ext_uid);
 {{#if extIdType}}
 {{#if storeSource}}
-CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_source_id_ext_id_idx ON {{namespace}}{{name}}_current (source_id, ext_id);
+-- Cannot be unique because this will cause issues with ON CONFLICT loading (as long as the uid is correctly formed, the PK will prevent duplicates)
+CREATE INDEX IF NOT EXISTS {{name}}_current_source_id_ext_id_idx ON {{namespace}}{{name}}_current (source_id, ext_id);
 {{else}}
-CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_ext_id_idx ON {{namespace}}{{name}}_current (ext_id);
+-- Cannot be unique because this will cause issues with ON CONFLICT loading (as long as the uid is correctly formed, the PK will prevent duplicates)
+CREATE INDEX IF NOT EXISTS {{name}}_current_ext_id_idx ON {{namespace}}{{name}}_current (ext_id);
 {{/if}}
 {{/if}}
 

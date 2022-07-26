@@ -27,7 +27,15 @@ CREATE TABLE IF NOT EXISTS {{namespace}}{{name}}_raw (
   _updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS {{name}}_raw_rev_idx ON {{namespace}}{{name}}_raw (data_rev);
-{{#if extIdType}}CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_raw_ext_id_idx ON {{namespace}}{{name}}_raw ({{#if storeSource}}source_id, {{/if}}ext_id);{{/if}}
+{{#if extIdType}}
+{{#if storeSource}}
+-- Cannot be unique because this will cause issues with ON CONFLICT loading (as long as the uid is correctly formed, the PK will prevent duplicates)
+CREATE INDEX IF NOT EXISTS {{name}}_raw_source_id_ext_id_idx ON {{namespace}}{{name}}_raw (source_id, ext_id);
+{{else}}
+-- Cannot be unique because this will cause issues with ON CONFLICT loading (as long as the uid is correctly formed, the PK will prevent duplicates)
+CREATE INDEX IF NOT EXISTS {{name}}_raw_ext_id_idx ON {{namespace}}{{name}}_raw (ext_id);
+{{/if}}
+{{/if}}
 
 --
 -- This function takes in a JSON array of elements to load and upserts them into _raw
