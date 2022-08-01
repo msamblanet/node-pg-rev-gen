@@ -38,7 +38,7 @@
     "json5": "^2.2.1"
   },
   "devDependencies": {
-    "npm-check-updates": "^15.3.4",
+    "npm-check-updates": "^16.0.4",
     "xo": "^0.51.0",
     "depcheck": "^1.4.3"
   },
