@@ -21,8 +21,10 @@ CREATE TABLE IF NOT EXISTS {{namespace}}{{name}}_rev (
   deleted BOOLEAN NOT NULL, -- Set to true if the record has been deleted
 
   fetch_date TIMESTAMPTZ NOT NULL, -- Date this revision of the record was fetched
-  ext_update_date TIMESTAMPTZ, -- External system update data when this record was fetched
+  ext_create_date TIMESTAMPTZ, -- External system's create timestamp
+  ext_update_date TIMESTAMPTZ, -- External system's update timestamp
 
+  create_date TIMESTAMPTZ NOT NULL, -- Update date from raw when this record was fetched
   update_date TIMESTAMPTZ NOT NULL, -- Update date from raw when this record was fetched
 
   -- Internal postgres auditing fields
@@ -42,6 +44,11 @@ CREATE INDEX IF NOT EXISTS {{name}}_rev_ext_uid_current_idx ON {{namespace}}{{na
 --
 -- View of current, not deleted revisions
 --
+CREATE OR REPLACE VIEW {{namespace}}{{name}}_rev_current_all AS
+SELECT *
+  FROM {{namespace}}{{name}}_rev
+ WHERE current;
+
 CREATE OR REPLACE VIEW {{namespace}}{{name}}_rev_current AS
 SELECT *
   FROM {{namespace}}{{name}}_rev
@@ -75,11 +82,11 @@ BEGIN
   INSERT INTO {{namespace}}{{name}}_rev
          (ext_uid, {{#if storeSource}}source_id, {{/if}}{{#if extIdType}}ext_id, {{/if}}
           data_rev, raw_data, deleted,
-          fetch_date, ext_update_date, update_date,
+          fetch_date, ext_create_date, ext_update_date, create_date, update_date,
           prev_rev_id, raw_delta, raw_revert)
   SELECT  a.ext_uid, {{#if storeSource}}a.source_id, {{/if}}{{#if extIdType}}a.ext_id, {{/if}}
           a.data_rev, a.raw_data, a.deleted,
-          a.last_fetch_date, a.ext_update_date, a.update_date,
+          a.last_fetch_date, a.ext_create_date, a.ext_update_date, a.create_date, a.update_date,
           b.rev_id,
           CASE WHEN b.raw_data IS NULL THEN a.raw_data ELSE {{../publicNamespace}}rev_jsonb_diff_val(a.raw_data, b.raw_data) END,
           CASE WHEN b.raw_data IS NULL THEN NULL ELSE {{../publicNamespace}}rev_jsonb_diff_val(b.raw_data, a.raw_data) END
@@ -98,11 +105,11 @@ BEGIN
     INSERT INTO {{namespace}}{{name}}_rev
            (ext_uid, {{#if storeSource}}source_id, {{/if}}{{#if extIdType}}ext_id, {{/if}}
             data_rev, raw_data, deleted,
-            fetch_date, ext_update_date, update_date,
+            fetch_date, ext_create_date, ext_update_date, create_date, update_date,
             prev_rev_id, raw_delta, raw_revert)
     SELECT a.ext_uid, {{#if storeSource}}a.source_id, {{/if}}{{#if extIdType}}a.ext_id, {{/if}}
            a.data_rev, a.raw_data || '{"__raw_deleted": true}'::JSONB, true,
-           _del_timestamp, a.ext_update_date, _del_timestamp,
+           _del_timestamp, a.ext_create_date, a.ext_update_date, a.create_date _del_timestamp,
            a.rev_id,
            '{"__raw_deleted": true}'::JSONB,
            '{"__raw_deleted": null}'::JSONB

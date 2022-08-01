@@ -1,6 +1,6 @@
 {
   "name": "@msamblanet/node-pg-rev-gen",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "SQL generator for the node-pg-rev system",
   "author": "Michael Samblanet <michael@samblanet.com>",
   "license": "Apache-2.0",
@@ -38,7 +38,7 @@
     "json5": "^2.2.1"
   },
   "devDependencies": {
-    "npm-check-updates": "^15.3.4",
+    "npm-check-updates": "^16.0.5",
     "xo": "^0.51.0",
     "depcheck": "^1.4.3"
   },

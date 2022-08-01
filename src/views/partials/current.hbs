@@ -1,7 +1,7 @@
 --
 -- View of the current data in the system (extranious fields stripped out - join to _rev or _raw if needed)
 --
-CREATE OR REPLACE VIEW {{namespace}}{{name}}_current_view AS
+CREATE OR REPLACE VIEW {{namespace}}{{name}}_current_all_view AS
 SELECT rev_id,
        ext_uid,
        {{#if storeSource}}source_id,{{/if}}
@@ -11,54 +11,78 @@ SELECT rev_id,
       {{this.definition}} AS {{@key}}, {{#if this.comment}}-- {{this.comment}}{{/if}}
 {{/if}}{{/each}}
        -- End custom fields
+       deleted,
        update_date
-  FROM {{namespace}}{{name}}_rev_current;
+  FROM {{namespace}}{{name}}_rev_current_all;
 
 {{#if materializeView}}
 --
--- Materialized view of current_view to allow for indexing
+-- Materialized view of current_view_all to allow for indexing
 --
-CREATE MATERIALIZED VIEW IF NOT EXISTS {{namespace}}{{name}}_current AS
-SELECT * FROM {{namespace}}{{name}}_current_view;
+CREATE MATERIALIZED VIEW IF NOT EXISTS {{namespace}}{{name}}_current_all AS
+SELECT * FROM {{namespace}}{{name}}_current_all_view;
 
 -- rev_id and ext_uid should be unique so give them unique indexes
-CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_rev_id_idx ON {{namespace}}{{name}}_current (rev_id);
-CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_ext_uid_idx ON {{namespace}}{{name}}_current (ext_uid);
+CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_all_rev_id_idx ON {{namespace}}{{name}}_current_all (rev_id);
+CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_all_ext_uid_idx ON {{namespace}}{{name}}_current_all (ext_uid);
+CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_current_all_deleted_idx ON {{namespace}}{{name}}_current_all (deleted);
 {{#if extIdType}}
 {{#if storeSource}}
 -- Cannot be unique because this will cause issues with ON CONFLICT loading (as long as the uid is correctly formed, the PK will prevent duplicates)
-CREATE INDEX IF NOT EXISTS {{name}}_current_source_id_ext_id_idx ON {{namespace}}{{name}}_current (source_id, ext_id);
+CREATE INDEX IF NOT EXISTS {{name}}_current_all_source_id_ext_id_idx ON {{namespace}}{{name}}_current_all (source_id, ext_id);
 {{else}}
 -- Cannot be unique because this will cause issues with ON CONFLICT loading (as long as the uid is correctly formed, the PK will prevent duplicates)
-CREATE INDEX IF NOT EXISTS {{name}}_current_ext_id_idx ON {{namespace}}{{name}}_current (ext_id);
+CREATE INDEX IF NOT EXISTS {{name}}_current_all_ext_id_idx ON {{namespace}}{{name}}_current_all (ext_id);
 {{/if}}
 {{/if}}
 
 -- Update date commonly queried for chained updates
-CREATE INDEX IF NOT EXISTS {{name}}_current_update_date_idx ON {{namespace}}{{name}}_current (update_date);
+CREATE INDEX IF NOT EXISTS {{name}}_current_all_update_date_idx ON {{namespace}}{{name}}_current_all (update_date);
 
 -- Custom field indexes
 {{~#each extractedFields}}{{#if this.index}}
-CREATE {{#if this.unique}}UNIQUE {{/if}}INDEX IF NOT EXISTS {{../name}}_current_{{@key}}_idx ON {{../namespace}}{{../name}}_current ({{@key}});
+CREATE {{#if this.unique}}UNIQUE {{/if}}INDEX IF NOT EXISTS {{../name}}_current_all_{{@key}}_idx ON {{../namespace}}{{../name}}_current_all ({{@key}});
 {{/if}}{{/each}}
 {{~#each indexes}}
-CREATE {{#if this.unique}}UNIQUE {{/if}}INDEX IF NOT EXISTS {{../name}}_current_{{@key}}_idx ON {{../namespace}}{{../name}}_current {{this.definition}};{{#if this.comment}} -- {{this.comment}}{{/if}}
+CREATE {{#if this.unique}}UNIQUE {{/if}}INDEX IF NOT EXISTS {{../name}}_current_all_{{@key}}_idx ON {{../namespace}}{{../name}}_current_all {{this.definition}};{{#if this.comment}} -- {{this.comment}}{{/if}}
 {{/each}}
 
 {{else}}
 --
 -- Compatability view of current_view for consistency
 --
-CREATE OR REPLACE VIEW {{namespace}}{{name}}_current AS
-SELECT * FROM {{namespace}}{{name}}_current_view;
+CREATE OR REPLACE VIEW {{namespace}}{{name}}_current_all AS
+SELECT * FROM {{namespace}}{{name}}_current_all_view;
 {{/if}}
+
+--
+-- View of current_all without deleted items and without deleted flag
+--
+CREATE OR REPLACE VIEW {{namespace}}{{name}}_current AS
+SELECT rev_id,
+       ext_uid,
+       {{#if storeSource}}source_id,{{/if}}
+       {{#if extIdType}}ext_id,{{/if}}
+       -- Begin custom fields
+{{~#each extractedFields}}{{#if this.definition}}
+      {{@key}},
+{{/if}}{{/each}}
+       update_date
+  FROM {{namespace}}{{name}}_current_all
+ WHERE NOT deleted;
 
 --
 -- View of current data with the revision data (including raw data) added in
 --
+CREATE OR REPLACE VIEW {{namespace}}{{name}}_current_all_with_rev AS
+SELECT a.*,
+       b.data_rev, b.raw_data, b.raw_delta, b.raw_revert, b.fetch_date, b.ext_create_date, b.ext_update_date, b.create_date
+  FROM {{namespace}}{{name}}_current_all a
+  JOIN {{namespace}}{{name}}_rev b ON a.rev_id = b.rev_id;
+
 CREATE OR REPLACE VIEW {{namespace}}{{name}}_current_with_rev AS
 SELECT a.*,
-       b.data_rev, b.raw_data, b.raw_delta, b.raw_revert, b.fetch_date, b.ext_update_date
+       b.data_rev, b.raw_data, b.raw_delta, b.raw_revert, b.fetch_date, b.ext_create_date, b.ext_update_date, b.create_date
   FROM {{namespace}}{{name}}_current a
   JOIN {{namespace}}{{name}}_rev b ON a.rev_id = b.rev_id;
 
@@ -73,7 +97,7 @@ DECLARE
   temp INTEGER;
 BEGIN
 {{#if materializView}}
-  REFRESH MATERIALIZED VIEW {{#if concurrentView}}CONCURRENTLY {{/if}}{{namespace}}{{name}}_current;
+  REFRESH MATERIALIZED VIEW {{#if concurrentView}}CONCURRENTLY {{/if}}{{namespace}}{{name}}_current_all;
 {{/if}}
 {{#each extraRefresh}}
   {{this}}
