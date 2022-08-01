@@ -1,6 +1,6 @@
 {
   "name": "@msamblanet/node-pg-rev-gen",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "SQL generator for the node-pg-rev system",
   "author": "Michael Samblanet <michael@samblanet.com>",
   "license": "Apache-2.0",
