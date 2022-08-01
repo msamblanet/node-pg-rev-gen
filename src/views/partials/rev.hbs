@@ -109,7 +109,7 @@ BEGIN
             prev_rev_id, raw_delta, raw_revert)
     SELECT a.ext_uid, {{#if storeSource}}a.source_id, {{/if}}{{#if extIdType}}a.ext_id, {{/if}}
            a.data_rev, a.raw_data || '{"__raw_deleted": true}'::JSONB, true,
-           _del_timestamp, a.ext_create_date, a.ext_update_date, a.create_date _del_timestamp,
+           _del_timestamp, a.ext_create_date, a.ext_update_date, a.create_date, _del_timestamp,
            a.rev_id,
            '{"__raw_deleted": true}'::JSONB,
            '{"__raw_deleted": null}'::JSONB

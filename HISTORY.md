@@ -1,5 +1,8 @@
 # node-pg-rev-gen - Revision History
 
+- 2022-08-01: v0.2.1
+  - Fix typo in _rev_load template
+
 - 2022-08-01: v0.2.0
   - Added ext_create_date to _rev and _current_with_rev
   - Modify view chain to materialize _current_all and provide parallel _current/_current_all chains (to allow access to deleted items)
