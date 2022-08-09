@@ -1,5 +1,9 @@
 # node-pg-rev-gen - Revision History
 
+- 2022-08-09: v0.3.1
+  - Fix typo causing materialized view procedures to not be built correctly
+  - Fix drop issues with materialized view
+
 - 2022-08-09: v0.3.0
   - Removed rev_current and rev_current_all views
   - Changed _current_all_view to current_all_mview

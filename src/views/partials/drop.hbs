@@ -13,7 +13,11 @@
 {{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_current_refresh;{{/if}}
 {{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current;{{/if}}
 {{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current_all;{{/if}}
-{{#if ../includeTransient}}DROP {{#if materializeView}}MATERIALIZED {{/if}}VIEW IF EXISTS {{namespace}}{{name}}_current_all_mview;{{/if}}
+{{#if materializeView}}
+{{#if ../includePersistent}}DROP MATERIALIZED VIEW IF EXISTS {{namespace}}{{name}}_current_all_mview;{{/if}}
+{{else}}
+{{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current_all_mview;{{/if}}
+{{/if}}
 
 {{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_rev_trim;{{/if}}
 {{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_rev_load;{{/if}}
