@@ -104,8 +104,8 @@ AS $$
 DECLARE
   temp INTEGER;
 BEGIN
-{{#if materializView}}
-  REFRESH MATERIALIZED VIEW {{#if concurrentView}}CONCURRENTLY {{/if}}{{namespace}}{{name}}_current_all;
+{{#if materializeView}}
+  REFRESH MATERIALIZED VIEW {{#if concurrentView}}CONCURRENTLY {{/if}}{{namespace}}{{name}}_current_all_mview;
 {{/if}}
 {{#each extraRefresh}}
   {{this}}
