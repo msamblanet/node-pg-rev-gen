@@ -21,12 +21,11 @@ The following objects are generated:
   - xxx_rev - Table containing a history of all of the changes to the raw data
     - xxx_rev_load() - Generates new revisions based on updated load data
     - xxx_rev_trim() - Removes raw data from old notes (can be recovered via the delta fields)
-    - xxx_rev_current - View showing xxx_rev but only for the current, not-deleted records
-  - xxx_current_view - A view containing the basic metadata and specified projected columns from the current data
-    - xxx_current - An optionally materialized view of xxx_current_view
-    - xxx_current_refresh() - A procedure to refresh the current view (created even if current is not materialized)
-    - xxx_current_with_rev - A view of xxx_current joined to xxx_rev to include raw data and other additional metadta
-  - xxx_updated - A table to track an update date for each record - generally used to sink webhook notifications of updates but can also be used to force updates of specific records
+  - xxx_current_all_mview - An (optionally materialized) view of all current records (including deleted records)
+    - xxx_current_refresh() - A procedure to refresh the materialized view (created even if current is not materialized for consistency)
+    - XXX_current_all - All current records with non-materialized extracted columns added
+    - XXX_current_view - Same as XXX_current_view but with deleted records filtered
+  - xxx_updated - A table to track external updates for each record - generally used to sink webhook notifications of updates but can also be used to force updates of specific records
     - xxx_updated_load() - Procedure to load a batch of records into xxx_updated
     - xxx_updated_trim() - Procedure to delete updates older than a given date
 
@@ -51,6 +50,7 @@ The following objects are generated:
   - updaters - String of users and roles to grant SELECT and EXECUTE access to this type
   - extractedFields - A hash of information on fields to extract into xxx_current
     - [name] - The column name in the DB
+    - doNotMaterialize - If true, the column is omitted from materialized views to save space
     - definition - The SQL table definition for the column
     - index - If true, index this column (only if materialized)
     - unique - If true, make the index unique (only if materialized and index)

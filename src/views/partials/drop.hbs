@@ -11,16 +11,12 @@
 {{/each}}{{/if}}
 
 {{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_current_refresh;{{/if}}
-{{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current_with_rev;{{/if}}
 {{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current;{{/if}}
-{{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current_all_with_rev;{{/if}}
-{{#if ../includeTransient}}DROP {{#if materializeView}}MATERIALIZED {{/if}}VIEW IF EXISTS {{namespace}}{{name}}_current_all;{{/if}}
-{{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current_all_view;{{/if}}
+{{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_current_all;{{/if}}
+{{#if ../includeTransient}}DROP {{#if materializeView}}MATERIALIZED {{/if}}VIEW IF EXISTS {{namespace}}{{name}}_current_all_mview;{{/if}}
 
 {{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_rev_trim;{{/if}}
 {{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_rev_load;{{/if}}
-{{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_rev_current;{{/if}}
-{{#if ../includeTransient}}DROP VIEW IF EXISTS {{namespace}}{{name}}_rev_current_all;{{/if}}
 {{#if ../includePersistent}}DROP TABLE IF EXISTS {{namespace}}{{name}}_rev;{{/if}}
 
 {{#if ../includeTransient}}DROP PROCEDURE IF EXISTS {{namespace}}{{name}}_raw_trim;{{/if}}
