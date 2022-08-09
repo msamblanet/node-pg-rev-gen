@@ -42,19 +42,6 @@ CREATE INDEX IF NOT EXISTS {{name}}_rev_current_deleted_idx ON {{namespace}}{{na
 CREATE INDEX IF NOT EXISTS {{name}}_rev_ext_uid_current_idx ON {{namespace}}{{name}}_rev (ext_uid) WHERE current;
 
 --
--- View of current, not deleted revisions
---
-CREATE OR REPLACE VIEW {{namespace}}{{name}}_rev_current_all AS
-SELECT *
-  FROM {{namespace}}{{name}}_rev
- WHERE current;
-
-CREATE OR REPLACE VIEW {{namespace}}{{name}}_rev_current AS
-SELECT *
-  FROM {{namespace}}{{name}}_rev
- WHERE current AND NOT deleted;
-
---
 -- This procedure looks for updated _raw records and loads them into _rev
 --
 -- THE APPLICATION IS RESPONSIBLE TO ENSURE THAT ONLY ONE EXECUTION OF THIS FUNCTION OCCURS AT A TIME!

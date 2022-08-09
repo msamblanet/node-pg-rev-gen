@@ -1,5 +1,13 @@
 # node-pg-rev-gen - Revision History
 
+- 2022-08-09: v0.3.0
+  - Removed rev_current and rev_current_all views
+  - Changed _current_all_view to current_all_mview
+    -  When not materialized due to config, this includes the _with_rev views to limit joins across views
+  - Removed _with_rev views and rolled rev columns in to base views
+  - Syntax fixes for materialized views
+  - Added doNotMaterialize flag for extracted fields to omit them from the materialized table to save space
+
 - 2022-08-01: v0.2.1
   - Fix typo in _rev_load template
 
