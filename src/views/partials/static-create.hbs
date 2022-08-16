@@ -47,3 +47,16 @@ BEGIN
   RETURN rv;
 END;
 $$;
+
+CREATE SEQUENCE IF NOT EXISTS {{publicNamespace}}rev_jobs_sequence AS INTEGER;
+
+CREATE OR REPLACE FUNCTION {{publicNamespace}}rev_create_job()
+RETURNS TABLE(job_id INTEGER, job_start TIMESTAMPTZ)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT NEXTVAL('{{publicNamespace}}rev_jobs_sequence')::INTEGER AS job_id, CURRENT_TIMESTAMP as job_start;
+END;
+$$;

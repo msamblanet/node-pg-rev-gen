@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS {{namespace}}{{name}}_rev (
   current BOOLEAN NOT NULL GENERATED ALWAYS AS (next_rev_id IS NULL) STORED, -- Indexable field for the head of the chain
 
   data_rev INTEGER NOT NULL, -- Revision of the data loader
+  job_id INTEGER NOT NULL, -- Job identifier
   raw_data JSONB, -- Full raw data (may be null'ed for old non-head data over time)
   raw_delta JSONB, -- Changes from prev revision to current revision (to allow forward chaining)
   raw_revert JSONB, -- Changes from current revision to previous (to allow backwards chaining)
@@ -24,12 +25,9 @@ CREATE TABLE IF NOT EXISTS {{namespace}}{{name}}_rev (
   ext_create_date TIMESTAMPTZ, -- External system's create timestamp
   ext_update_date TIMESTAMPTZ, -- External system's update timestamp
 
-  create_date TIMESTAMPTZ NOT NULL, -- Update date from raw when this record was fetched
-  update_date TIMESTAMPTZ NOT NULL, -- Update date from raw when this record was fetched
-
-  -- Internal postgres auditing fields
-  _created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  _updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  data_update_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, -- When raw_data or deleted last updated in CDB - Current timestamp at modification
+  rev_create_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, -- When data created in CDB - Current timestamp at insert
+  rev_update_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP -- When the record was last updated in CDB (even if unmodified)
 );
 
 -- Indexes for FK / Join Keys
@@ -43,16 +41,10 @@ CREATE INDEX IF NOT EXISTS {{name}}_rev_ext_uid_current_idx ON {{namespace}}{{na
 
 --
 -- This procedure looks for updated _raw records and loads them into _rev
---
 -- THE APPLICATION IS RESPONSIBLE TO ENSURE THAT ONLY ONE EXECUTION OF THIS FUNCTION OCCURS AT A TIME!
 --
--- _del_timestamp - Optional parameter specifying the timestamp to mark records as deleted if they are now missing from raw
---                  If set to NULL, delete detection is not done
---
--- _refresh_current_view - Optional parameter to specify if you want the current views refreshed
---                         If incrementally loading, you may wish to set this to false to only periodically refresh the views
---
 CREATE OR REPLACE PROCEDURE {{namespace}}{{name}}_rev_load(
+      _job_id INTEGER,
       _del_timestamp TIMESTAMPTZ,
       _refresh_current_view BOOLEAN,
       counts INOUT JSONB
@@ -68,19 +60,19 @@ BEGIN
   --
   INSERT INTO {{namespace}}{{name}}_rev
          (ext_uid, {{#if storeSource}}source_id, {{/if}}{{#if extIdType}}ext_id, {{/if}}
-          data_rev, raw_data, deleted,
-          fetch_date, ext_create_date, ext_update_date, create_date, update_date,
+          data_rev, job_id, raw_data, deleted,
+          fetch_date, ext_create_date, ext_update_date, data_update_date,
           prev_rev_id, raw_delta, raw_revert)
   SELECT  a.ext_uid, {{#if storeSource}}a.source_id, {{/if}}{{#if extIdType}}a.ext_id, {{/if}}
-          a.data_rev, a.raw_data, a.deleted,
-          a.last_fetch_date, a.ext_create_date, a.ext_update_date, a.create_date, a.update_date,
+          a.data_rev, _job_id, a.raw_data, a.deleted,
+          a.last_fetch_date, a.ext_create_date, a.ext_update_date, a.data_update_date,
           b.rev_id,
           CASE WHEN b.raw_data IS NULL THEN a.raw_data ELSE {{../publicNamespace}}rev_jsonb_diff_val(a.raw_data, b.raw_data) END,
           CASE WHEN b.raw_data IS NULL THEN NULL ELSE {{../publicNamespace}}rev_jsonb_diff_val(b.raw_data, a.raw_data) END
     FROM {{namespace}}{{name}}_raw a
     LEFT JOIN {{namespace}}{{name}}_rev b ON a.ext_uid = b.ext_uid AND b.current
    WHERE b.rev_id IS NULL
-      OR a.update_date <> b.update_date; -- @TODO This allows remote systems to roll back but we could consider just a > b and just get updates
+      OR a.data_update_date <> b.data_update_date;
 
   GET DIAGNOSTICS temp := ROW_COUNT;
   counts := counts || jsonb_build_object('load_count', temp);
@@ -91,12 +83,12 @@ BEGIN
   IF (_del_timestamp IS NOT NULL) THEN
     INSERT INTO {{namespace}}{{name}}_rev
            (ext_uid, {{#if storeSource}}source_id, {{/if}}{{#if extIdType}}ext_id, {{/if}}
-            data_rev, raw_data, deleted,
-            fetch_date, ext_create_date, ext_update_date, create_date, update_date,
+            data_rev, job_id, raw_data, deleted,
+            fetch_date, ext_create_date, ext_update_date, data_update_date,
             prev_rev_id, raw_delta, raw_revert)
     SELECT a.ext_uid, {{#if storeSource}}a.source_id, {{/if}}{{#if extIdType}}a.ext_id, {{/if}}
-           a.data_rev, a.raw_data || '{"__raw_deleted": true}'::JSONB, true,
-           _del_timestamp, a.ext_create_date, a.ext_update_date, a.create_date, _del_timestamp,
+           a.data_rev, _job_id, a.raw_data || '{"__raw_deleted": true}'::JSONB, true,
+           _del_timestamp, a.ext_create_date, a.ext_update_date, _del_timestamp,
            a.rev_id,
            '{"__raw_deleted": true}'::JSONB,
            '{"__raw_deleted": null}'::JSONB
@@ -116,7 +108,7 @@ BEGIN
   --
   UPDATE {{namespace}}{{name}}_rev a
     SET next_rev_id = b.rev_id,
-        _updated_at = CURRENT_TIMESTAMP
+        rev_update_date = CURRENT_TIMESTAMP
     FROM {{namespace}}{{name}}_rev b
   WHERE a.next_rev_id IS NULL
     AND b.prev_rev_id = a.rev_id;
@@ -143,11 +135,23 @@ DECLARE
 BEGIN
   UPDATE {{namespace}}{{name}}_rev
      SET raw_data = NULL,
-         _updated_at = CURRENT_TIMESTAMP
-   WHERE _updated_at < _cutoff_date -- Record was last updated before cutoff (most likely date it was superseded)
-     AND NOT current;               -- Don't clobber tail
+         rev_update_date = CURRENT_TIMESTAMP
+   WHERE data_update_date < _cutoff_date -- Data was last updated before cutoff
+     AND NOT current;                    -- Don't clobber tail
 
   GET DIAGNOSTICS temp := ROW_COUNT;
   counts := counts || jsonb_build_object('rev_trim_count', temp);
 END;
 $$;
+
+--
+-- View of _rev with generated columns
+--
+CREATE OR REPLACE VIEW {{namespace}}{{name}}_rev_view AS
+SELECT *
+       -- Begin materialized custom fields
+{{~#each extractedFields}}{{#if this.definition}}
+      , {{this.definition}} AS {{@key}} {{#if this.comment}}-- {{this.comment}}{{/if}}
+{{/if}}{{/each}}
+       -- End custom fields
+  FROM {{namespace}}{{name}}_rev;
