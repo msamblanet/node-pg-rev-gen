@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS {{namespace}}{{name}}_updated (
   notes TEXT,
 
   -- Internal postgres auditing fields
-  _created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  _updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  update_created TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_updated TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 {{#if extIdType}}CREATE UNIQUE INDEX IF NOT EXISTS {{name}}_updated_ext_id_idx ON {{namespace}}{{name}}_updated ({{#if storeSource}}source_id, {{/if}}ext_id);{{/if}}
 CREATE INDEX IF NOT EXISTS {{name}}_updated_update_date_idx ON {{namespace}}{{name}}_updated (update_date);
@@ -57,7 +57,7 @@ BEGIN
        UPDATE SET raw_data = EXCLUDED.raw_data,
                   notes = EXCLUDED.notes,
                   update_date = EXCLUDED.update_date,
-                  _updated_at = CURRENT_TIMESTAMP
+                  update_updated = CURRENT_TIMESTAMP
             WHERE {{name}}_updated.update_date < EXCLUDED.update_date;
 
   GET DIAGNOSTICS temp := ROW_COUNT;
@@ -66,8 +66,7 @@ END;
 $$;
 
 --
--- This function NULLs out the raw data from old revisions to save storage
--- (note: the delta/revert history is kept)
+-- This function deletes old updates
 --
 CREATE OR REPLACE PROCEDURE {{namespace}}{{name}}_updated_trim(_cutoff_date TIMESTAMPTZ, counts INOUT JSONB )
 LANGUAGE plpgsql

@@ -13,6 +13,8 @@ The following objects are generated:
 
 - Shared:
   - rev_jsonb_diff_val() - Function that calculates the difference between 2 JSONB objects
+  - rev_jobs_sequence - Sequence for job numbers
+  - rev_create_job() - Function to get a job number and the current server timestamp for reference
 - Per Record Type:
   - xxx_default_source_id() - Function returning the default source id for the type (if one was specified)
   - xxx_raw - Table containing a single record representing the current state of the data in the source system
@@ -21,10 +23,11 @@ The following objects are generated:
   - xxx_rev - Table containing a history of all of the changes to the raw data
     - xxx_rev_load() - Generates new revisions based on updated load data
     - xxx_rev_trim() - Removes raw data from old notes (can be recovered via the delta fields)
-  - xxx_current_all_mview - An (optionally materialized) view of all current records (including deleted records)
-    - xxx_current_refresh() - A procedure to refresh the materialized view (created even if current is not materialized for consistency)
+    - xxx_rev_view - View of _rev with all extracted columns added
+  - xxx_current_all_mview - An (optionally materialized) view of all current records (including deleted records) and all materialized extracted columns
+    - xxx_current_refresh() - A procedure to refresh the materialized view (created even if current is not materialized for consistency) including materialized extracted columns
     - XXX_current_all - All current records with non-materialized extracted columns added
-    - XXX_current_view - Same as XXX_current_view but with deleted records filtered
+    - XXX_current - Same as XXX_current_view but with deleted records filtered
   - xxx_updated - A table to track external updates for each record - generally used to sink webhook notifications of updates but can also be used to force updates of specific records
     - xxx_updated_load() - Procedure to load a batch of records into xxx_updated
     - xxx_updated_trim() - Procedure to delete updates older than a given date

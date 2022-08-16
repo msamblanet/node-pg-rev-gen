@@ -1,5 +1,10 @@
 # node-pg-rev-gen - Revision History
 
+- 2022-08-16: v0.4.0
+  - Refactor of dates
+  - Addition of job_id
+  - Refactored to add _rev_view as the only projection of columns
+
 - 2022-08-09: v0.3.1
   - Fix typo causing materialized view procedures to not be built correctly
   - Fix drop issues with materialized view

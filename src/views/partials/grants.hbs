@@ -3,6 +3,7 @@
 GRANT EXECUTE ON FUNCTION {{namespace}}{{name}}_default_source_id TO {{viewers}};
 GRANT SELECT ON {{namespace}}{{name}}_raw TO {{viewers}};
 GRANT SELECT ON {{namespace}}{{name}}_rev TO {{viewers}};
+GRANT SELECT ON {{namespace}}{{name}}_rev_view TO {{viewers}};
 GRANT SELECT ON {{namespace}}{{name}}_current_all_mview TO {{viewers}};
 GRANT SELECT ON {{namespace}}{{name}}_current_all TO {{viewers}};
 GRANT SELECT ON {{namespace}}{{name}}_current TO {{viewers}};
@@ -15,10 +16,14 @@ GRANT SELECT ON {{../namespace}}{{this}}_updated TO {{../viewers}};
 {{/if}}
 
 {{#if updaters}}
+-- Grant {{updaters}} access to common methods
+GRANT EXECUTE ON FUNCTION {{namespace}}{{name}}_default_source_id TO {{updaters}};
+
 -- Grant {{updaters}} read and execute access to {{name}}'s objects
 GRANT EXECUTE ON FUNCTION {{namespace}}{{name}}_default_source_id TO {{updaters}};
 GRANT SELECT ON {{namespace}}{{name}}_raw TO {{updaters}};
 GRANT SELECT ON {{namespace}}{{name}}_rev TO {{updaters}};
+GRANT SELECT ON {{namespace}}{{name}}_rev_view TO {{updaters}};
 GRANT SELECT ON {{namespace}}{{name}}_current_all_mview TO {{updaters}};
 GRANT SELECT ON {{namespace}}{{name}}_current_all TO {{updaters}};
 GRANT SELECT ON {{namespace}}{{name}}_current TO {{updaters}};
