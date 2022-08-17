@@ -46,7 +46,6 @@ CREATE INDEX IF NOT EXISTS {{name}}_rev_ext_uid_current_idx ON {{namespace}}{{na
 CREATE OR REPLACE PROCEDURE {{namespace}}{{name}}_rev_load(
       _job_id INTEGER,
       _del_timestamp TIMESTAMPTZ,
-      _refresh_current_view BOOLEAN,
       counts INOUT JSONB
 )
 LANGUAGE plpgsql
@@ -116,9 +115,9 @@ BEGIN
   GET DIAGNOSTICS temp := ROW_COUNT;
   counts := counts || jsonb_build_object('backlink_count', temp);
 
-  IF (_refresh_current_view) THEN
+  {{!-- IF (_refresh_current_view) THEN
     CALL {{namespace}}{{name}}_current_refresh(counts);
-  END IF;
+  END IF; --}}
 END;
 $$;
 
