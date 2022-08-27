@@ -3,7 +3,9 @@
 -- for generated node-pg-rev
 --
 -- node-pg-rev-gen version {{packageVersion}}
+-- Filename: {{dropFileName}}
 -- Generated at: {{now}}
 --
+DO $$ BEGIN RAISE NOTICE 'BEGIN {{dropFileName}}'; END $$;
 
 {{> drop includePersistent=true includeTransient=true}}

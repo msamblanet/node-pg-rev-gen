@@ -1,5 +1,8 @@
 # node-pg-rev-gen - Revision History
 
+- TBD: v0.4.2
+  - Add notices to the start of all scripts and the start of each create section
+
 - 2022-08-17: v0.4.1
   - Remove refresh from load_rev procedure, split out in procedure and in AsbtractRevLoader
 

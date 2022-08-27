@@ -3,7 +3,9 @@
 -- for generated node-pg-rev
 --
 -- node-pg-rev-gen version {{packageVersion}}
+-- Filename: {{dropTransientFileName}}
 -- Generated at: {{now}}
 --
+DO $$ BEGIN RAISE NOTICE 'BEGIN {{dropTransientFileName}}'; END $$;
 
 {{> drop includeTransient=true}}

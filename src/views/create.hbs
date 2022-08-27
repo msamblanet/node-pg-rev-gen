@@ -3,8 +3,11 @@
 -- for the generated delta history tables
 --
 -- node-pg-rev-gen version {{packageVersion}}
+-- Filename: {{createFileName}}
 -- Generated at: {{now}}
 --
+DO $$ BEGIN RAISE NOTICE 'BEGIN {{createFileName}}'; END $$;
+
 
 -- ************************************
 -- Common static objects
@@ -13,6 +16,7 @@
 
 
 {{#each types}}
+DO $$ BEGIN RAISE NOTICE 'Creating: {{name}}'; END $$;
 -- ************************************
 -- {{name}} objects
 --
