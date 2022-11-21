@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "npm-check-updates": "^16.0.5",
-    "xo": "^0.51.0",
+    "xo": "^0.53.1",
     "depcheck": "^1.4.3"
   },
   "engines": {
